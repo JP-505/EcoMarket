@@ -149,53 +149,47 @@ export default function App() {
   const [favorites, setFavorites] = useState([]);
   const [history, setHistory] = useState([]);
   
-  // Filtros y Buscador
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todas');
   const [sortOrder, setSortOrder] = useState('none'); 
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedVariant, setSelectedVariant] = useState(null);
 
-  // Filtros Avanzados (HU23)
   const [filterMarca, setFilterMarca] = useState('Todas');
   const [precioMin, setPrecioMin] = useState('');
   const [precioMax, setPrecioMax] = useState('');
 
-  // Módulos nuevos Taller 5
-  const [compareList, setCompareList] = useState([]); // HU22
-  const [preguntas, setPreguntas] = useState([        // HU24
+  const [compareList, setCompareList] = useState([]); 
+  const [preguntas, setPreguntas] = useState([        
     { id: 'P-1', prodId: 'PROD-001', texto: '¿Sirve para MacBooks de 16 pulgadas?', respuesta: 'Hola, sí es totalmente compatible con equipos de hasta 17 pulgadas.', estado: 'Respondida', fecha: '2026-03-01' }
   ]);
   const [nuevaPregunta, setNuevaPregunta] = useState('');
 
-  const [direcciones, setDirecciones] = useState([    // HU25
+  const [direcciones, setDirecciones] = useState([    
     { id: 'DIR-1', alias: 'Casa Principal', municipio: 'Mosquera', ref: 'Calle 10 # 5-20 apto 301', principal: true },
     { id: 'DIR-2', alias: 'Oficina Sabana', municipio: 'Funza', ref: 'Zona Industrial Lote 4', principal: false }
   ]);
   const [nuevaDir, setNuevaDir] = useState({ alias: '', municipio: 'Mosquera', ref: '' });
   const [dirSeleccionada, setDirSeleccionada] = useState('DIR-1');
-  const [modalidadEnvio, setModalidadEnvio] = useState('estandar'); // 'estandar' o 'expres'
+  const [modalidadEnvio, setModalidadEnvio] = useState('estandar'); 
 
-  const [notificaciones, setNotificaciones] = useState([]); // HU29
-  const [subscriptionsStock, setSubscriptionsStock] = useState([]); // HU30
-  const [supportTickets, setSupportTickets] = useState([]); // HU32
+  const [notificaciones, setNotificaciones] = useState([]); 
+  const [subscriptionsStock, setSubscriptionsStock] = useState([]); 
+  const [supportTickets, setSupportTickets] = useState([]); 
   const [ticketForm, setTicketForm] = useState({ pedidoId: '', motivo: 'Entrega', descripcion: '' });
 
   const categories = ['Todas', 'Tecnología', 'Hogar', 'Deportes', 'Mascotas'];
   const marcasList = ['Todas', 'ErgoTech', 'SoundMax', 'LumenHouse', 'EcoContainer', 'WoodCraft', 'FitActive', 'PetHappy'];
 
-  // Calcular stock total de un producto basado en sus variantes (Regla Taller 5)
   const getStockTotal = (prod) => {
     return prod.variantes.reduce((acc, v) => acc + v.stockPropio, 0);
   };
 
-  // Filtrado Combinado (HU23 + Buscador + Categorías)
   const filteredProducts = productos.filter(p => {
     const matchesSearch = p.nombre.toLowerCase().includes(search.toLowerCase());
     const matchesCat = selectedCategory === 'Todas' || p.categoria === selectedCategory;
     const matchesMarca = filterMarca === 'Todas' || p.marca === filterMarca;
     
-    // Rango de precios basado en sus variantes
     const minP = Math.min(...p.variantes.map(v => v.precioFinal));
     const maxP = Math.max(...p.variantes.map(v => v.precioFinal));
     const pMinVal = precioMin !== '' ? parseFloat(precioMin) : 0;
@@ -211,15 +205,18 @@ export default function App() {
     return 0;
   });
 
-  const toggleFavorite = (id) => {
-    if (favorites.includes(id)) {
-      setFavorites(favorites.filter(favId => favId !== id));
+  
+const toggleFavorite = (id) => {
+  setFavorites(prevFavorites => {
+    if (prevFavorites.includes(id)) {
+      return prevFavorites.filter(favId => favId !== id);
     } else {
-      setFavorites([...favorites, id]);
+      return [...prevFavorites, id];
     }
-  };
+  });
+};
 
-  // HU22: Comparador de productos
+
   const toggleCompare = (product) => {
     if (compareList.includes(product.id)) {
       setCompareList(compareList.filter(id => id !== product.id));
@@ -233,10 +230,9 @@ export default function App() {
     }
   };
 
-  // HU21: Agregar al carrito con variante obligatoria
   const addToCartWithVariant = (product, variant) => {
     if (!variant) {
-      Alert.alert('Variante obligatoria', 'Por favor selecciona una variante (talla, color o presentación) antes de continuar.');
+      Alert.alert('Variante obligatoria', 'Por favor selecciona una variante antes de continuar.');
       return;
     }
     if (variant.stockPropio <= 0) {
@@ -249,7 +245,7 @@ export default function App() {
 
     if (existing) {
       if (existing.quantity >= variant.stockPropio) {
-        Alert.alert('Stock máximo', 'No puedes agregar más unidades de las disponibles en esta variante.');
+        Alert.alert('Stock máximo', 'No puedes agregar más unidades de las disponibles.');
         return;
       }
       setCart(cart.map(item => item.cartKey === cartKey ? { ...item, quantity: item.quantity + 1 } : item));
@@ -264,7 +260,7 @@ export default function App() {
       if (item.cartKey === cartKey) {
         const newQty = item.quantity + delta;
         if (newQty > item.variant.stockPropio) {
-          Alert.alert('Stock máximo', 'No hay más unidades disponibles para esta variante.');
+          Alert.alert('Stock máximo', 'No hay más unidades disponibles.');
           return item;
         }
         return { ...item, quantity: newQty };
@@ -279,7 +275,6 @@ export default function App() {
 
   const subtotal = cart.reduce((sum, item) => sum + (item.variant.precioFinal * item.quantity), 0);
 
-  // HU26: Cálculo de Envío por Municipio y Modalidad
   const calcularEnvio = () => {
     if (subtotal === 0) return 0;
     const dirObj = direcciones.find(d => d.id === dirSeleccionada);
@@ -301,25 +296,22 @@ export default function App() {
   const shipping = calcularEnvio();
   const total = subtotal + shipping;
 
-  // HU13 & HU14 & HU28: Confirmar Compra y control de inventario por variante
   const confirmCheckout = () => {
     if (!dirSeleccionada) {
-      Alert.alert('Dirección requerida', 'Por favor selecciona una dirección de entrega válida de tu libreta.');
+      Alert.alert('Dirección requerida', 'Por favor selecciona una dirección de entrega válida.');
       return;
     }
     if (cart.length === 0) return;
 
-    // Verificar stock actual de variantes
     for (let item of cart) {
       const prodInDb = productos.find(p => p.id === item.product.id);
       const varInDb = prodInDb.variantes.find(v => v.id === item.variant.id);
       if (item.quantity > varInDb.stockPropio) {
-        Alert.alert('Error de stock', `La variante ${varInDb.etiqueta} de ${prodInDb.nombre} ya no cuenta con existencias suficientes.`);
+        Alert.alert('Error de stock', `La variante ${varInDb.etiqueta} ya no cuenta con stock suficiente.`);
         return;
       }
     }
 
-    // Descontar inventario por variante de forma inmutable
     const updatedProducts = productos.map(p => {
       const newVariantes = p.variantes.map(v => {
         const cartMatch = cart.find(ci => ci.product.id === p.id && ci.variant.id === v.id);
@@ -342,14 +334,13 @@ export default function App() {
       subtotal,
       shipping,
       total,
-      estado: 'Confirmado', // HU27
+      estado: 'Confirmado',
       municipioDestino: dirObj ? dirObj.municipio : 'Mosquera',
       direccionTexto: dirObj ? `${dirObj.alias}: ${dirObj.ref}` : 'Principal'
     };
 
     setHistory([newOrder, ...history]);
 
-    // HU29: Registrar Notificación Interna automática
     setNotificaciones(prev => [
       { id: 'NOTIF-' + Date.now(), tipo: 'Pedido', mensaje: `Tu pedido ${newOrderCode} fue confirmado exitosamente.`, fecha: new Date().toLocaleTimeString(), leida: false, refId: newOrderCode },
       ...prev
@@ -360,7 +351,6 @@ export default function App() {
     Alert.alert('¡Compra Exitosa!', `Pedido generado con código: ${newOrderCode}`);
   };
 
-  // HU27: Simular avance de entrega de pedidos
   const avanzarEstadoPedido = (orderCode) => {
     setHistory(history.map(ord => {
       if (ord.code === orderCode) {
@@ -373,7 +363,6 @@ export default function App() {
           return ord;
         }
 
-        // Generar notificación interna por cambio de estado
         setNotificaciones(prev => [
           { id: 'NOTIF-' + Date.now(), tipo: 'Estado', mensaje: `El pedido ${ord.code} cambió a estado: ${nuevoEstado}`, fecha: new Date().toLocaleTimeString(), leida: false, refId: ord.code },
           ...prev
@@ -385,17 +374,15 @@ export default function App() {
     }));
   };
 
-  // HU28: Cancelar compra y restituir stock exacto de variantes
   const cancelarPedido = (orderCode) => {
     const ord = history.find(o => o.code === orderCode);
     if (!ord) return;
 
     if (ord.estado !== 'Confirmado' && ord.estado !== 'Preparando') {
-      Alert.alert('No se puede cancelar', 'El pedido ya se encuentra en camino o entregado, por lo que no es posible cancelarlo directamente.');
+      Alert.alert('No se puede cancelar', 'El pedido ya está en camino o entregado.');
       return;
     }
 
-    // Restituir inventario a las variantes correspondientes
     setProductos(prevProds => {
       return prevProds.map(prod => {
         const matchingItemsInOrder = ord.items.filter(it => it.product.id === prod.id);
@@ -413,7 +400,6 @@ export default function App() {
       });
     });
 
-    // Actualizar estado a Cancelado
     setHistory(history.map(o => o.code === orderCode ? { ...o, estado: 'Cancelado' } : o));
 
     setNotificaciones(prev => [
@@ -421,29 +407,25 @@ export default function App() {
       ...prev
     ]);
 
-    Alert.alert('Pedido Cancelado', `El pedido ${orderCode} fue cancelado y las unidades se restituyeron al inventario.`);
+    Alert.alert('Pedido Cancelado', `El pedido ${orderCode} fue cancelado y las unidades se restituyeron.`);
   };
 
-  // HU30: Suscribirse a aviso de reposición
   const suscribirStock = (prodId) => {
     if (subscriptionsStock.includes(prodId)) {
-      Alert.alert('Aviso', 'Ya estás suscrito a las alertas de reposición de este producto.');
+      Alert.alert('Aviso', 'Ya estás suscrito a las alertas de reposición.');
       return;
     }
     setSubscriptionsStock([...subscriptionsStock, prodId]);
     Alert.alert('Suscripción exitosa', 'Te notificaremos cuando este artículo reciba unidades.');
   };
 
-  // Simulación de reposición de inventario (HU30)
   const simularReposicionStock = (prodId) => {
     setProductos(productos.map(p => {
       if (p.id === prodId) {
         const repairedVars = p.variantes.map(v => ({ ...v, stockPropio: v.stockPropio + 5 }));
-        
-        // Si el usuario estaba suscrito, enviar notificación de reposición
         if (subscriptionsStock.includes(p.id)) {
           setNotificaciones(prev => [
-            { id: 'NOTIF-' + Date.now(), tipo: 'Reposición', message: `¡El producto ${p.nombre} ha vuelto a estar disponible en stock!`, fecha: new Date().toLocaleTimeString(), leida: false, refId: p.id },
+            { id: 'NOTIF-' + Date.now(), tipo: 'Reposición', message: `¡El producto ${p.nombre} ha vuelto a estar disponible!`, fecha: new Date().toLocaleTimeString(), leida: false, refId: p.id },
             ...prev
           ]);
         }
@@ -454,7 +436,6 @@ export default function App() {
     Alert.alert('Simulación de Reposición', 'Se añadieron 5 unidades a las variantes de este producto.');
   };
 
-  // HU24: Enviar pregunta sobre producto
   const enviarPregunta = () => {
     if (nuevaPregunta.trim().length < 10) {
       Alert.alert('Texto muy corto', 'La pregunta debe contener al menos 10 caracteres.');
@@ -473,15 +454,13 @@ export default function App() {
     Alert.alert('Pregunta enviada', 'Tu inquietud fue registrada correctamente.');
   };
 
-  // Simular respuesta automática del vendedor (HU24)
   const simularRespuestaPregunta = (qId) => {
-    setPreguntas(preguntas.map(q => q.id === qId ? { ...q, respuesta: 'Hola, gracias por escribir. Sí, contamos con garantía local de fábrica por 6 meses.', estado: 'Respondida' } : q));
+    setPreguntas(preguntas.map(q => q.id === qId ? { ...q, respuesta: 'Hola, gracias por escribir. Sí, contamos con garantía de fábrica.', estado: 'Respondida' } : q));
   };
 
-  // HU32: Crear ticket de soporte
   const crearTicketSoporte = () => {
     if (!ticketForm.pedidoId || ticketForm.descripcion.length < 15) {
-      Alert.alert('Datos incompletos', 'Debes ingresar el número de pedido y una descripción de al menos 15 caracteres.');
+      Alert.alert('Datos incompletos', 'Ingresa el número de pedido y una descripción de al menos 15 caracteres.');
       return;
     }
     const nuevoT = {
@@ -494,34 +473,34 @@ export default function App() {
     };
     setSupportTickets([nuevoT, ...supportTickets]);
     setTicketForm({ pedidoId: '', motivo: 'Entrega', descripcion: '' });
-    Alert.alert('Caso Creado', `Se generó tu número de caso ${nuevoT.id} con estado Abierto.`);
+    Alert.alert('Caso Creado', `Se generó tu número de caso ${nuevoT.id}.`);
   };
 
   const simularRespuestaSoporte = (casoId) => {
-    setSupportTickets(supportTickets.map(t => t.id === casoId ? { ...t, estado: 'Respondido', respuestaFicticia: 'Estimado cliente, hemos validado su caso con el equipo logístico local y quedó resuelto satisfactoriamente.' } : t));
+    setSupportTickets(supportTickets.map(t => t.id === casoId ? { ...t, estado: 'Respondido', respuestaFicticia: 'Estimado cliente, su caso fue validado y resuelto con éxito.' } : t));
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Encabezado Principal / Identidad */}
+      {/* Encabezado Principal */}
       <View style={styles.header}>
         <Text style={styles.brandTitle}>EcoMarket Mosquera</Text>
         <Text style={styles.brandSlogan}>Lo natural y local al alcance de tus manos</Text>
       </View>
 
-      {/* Barra de Navegación Ampliada */}
+      {/* Barra de Navegación con Contadores Dinámicos */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.navBar}>
         <Pressable onPress={() => setCurrentScreen('catalog')} style={[styles.navBtn, currentScreen === 'catalog' && styles.activeNav]}><Text style={styles.navText}>Catálogo</Text></Pressable>
-        <Pressable onPress={() => setCurrentScreen('compare')} style={[styles.navBtn, currentScreen === 'compare' && styles.activeNav]}><Text style={styles.navText}>Comparador ({compareList.length})</Text></Pressable>
-        <Pressable onPress={() => setCurrentScreen('favorites')} style={[styles.navBtn, currentScreen === 'favorites' && styles.activeNav]}><Text style={styles.navText}>Favoritos ({favorites.length})</Text></Pressable>
-        <Pressable onPress={() => setCurrentScreen('cart')} style={[styles.navBtn, currentScreen === 'cart' && styles.activeNav]}><Text style={styles.navText}>Carrito ({cart.reduce((a,b)=>a+b.quantity,0)})</Text></Pressable>
-        <Pressable onPress={() => setCurrentScreen('addresses')} style={[styles.navBtn, currentScreen === 'addresses' && styles.activeNav]}><Text style={styles.navText}>Direcciones</Text></Pressable>
-        <Pressable onPress={() => setCurrentScreen('history')} style={[styles.navBtn, currentScreen === 'history' && styles.activeNav]}><Text style={styles.navText}>Pedidos & Seguimiento</Text></Pressable>
-        <Pressable onPress={() => setCurrentScreen('notifications')} style={[styles.navBtn, currentScreen === 'notifications' && styles.activeNav]}><Text style={styles.navText}>Avisos ({notificaciones.filter(n=>!n.leida).length})</Text></Pressable>
-        <Pressable onPress={() => setCurrentScreen('support')} style={[styles.navBtn, currentScreen === 'support' && styles.activeNav]}><Text style={styles.navText}>Centro de Ayuda</Text></Pressable>
+        <Pressable onPress={() => setCurrentScreen('compare')} style={[styles.navBtn, currentScreen === 'compare' && styles.activeNav]}><Text style={styles.navText}>Comparador</Text></Pressable>
+        <Pressable onPress={() => setCurrentScreen('favorites')} style={[styles.navBtn, currentScreen === 'favorites' && styles.activeNav]}><Text style={styles.navText}>Favoritos</Text></Pressable>
+        <Pressable onPress={() => setCurrentScreen('cart')} style={[styles.navBtn, currentScreen === 'cart' && styles.activeNav]}><Text style={styles.navText}>Carrito</Text></Pressable>
+        <Pressable onPress={() => setCurrentScreen('addresses')} style={[styles.navBtn, currentScreen === 'addresses' && styles.activeNav]}><Text style={styles.navText}>Direcciones </Text></Pressable>
+        <Pressable onPress={() => setCurrentScreen('history')} style={[styles.navBtn, currentScreen === 'history' && styles.activeNav]}><Text style={styles.navText}>Pedidos</Text></Pressable>
+        <Pressable onPress={() => setCurrentScreen('notifications')} style={[styles.navBtn, currentScreen === 'notifications' && styles.activeNav]}><Text style={styles.navText}>Avisos</Text></Pressable>
+        <Pressable onPress={() => setCurrentScreen('support')} style={[styles.navBtn, currentScreen === 'support' && styles.activeNav]}><Text style={styles.navText}>Soporte</Text></Pressable>
       </ScrollView>
 
-      {/* VISTA 1: CATÁLOGO Y FILTROS COMBINADOS (HU03, HU04, HU05, HU06, HU23) */}
+      {/* VISTA 1: CATÁLOGO */}
       {currentScreen === 'catalog' && (
         <View style={{ flex: 1 }}>
           <View style={styles.filterContainer}>
@@ -531,7 +510,6 @@ export default function App() {
               value={search}
               onChangeText={setSearch}
             />
-            {/* Categorías */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll}>
               {categories.map(cat => (
                 <Pressable key={cat} onPress={() => setSelectedCategory(cat)} style={[styles.catChip, selectedCategory === cat && styles.activeChip]}>
@@ -540,7 +518,6 @@ export default function App() {
               ))}
             </ScrollView>
 
-            {/* Filtros Combinados Avanzados HU23 (Marcas y Precios) */}
             <View style={{flexDirection: 'row', marginTop: 6, alignItems: 'center'}}>
               <Text style={{fontSize: 11, fontWeight: 'bold', marginRight: 4}}>Marca:</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -624,7 +601,7 @@ export default function App() {
         </View>
       )}
 
-      {/* VISTA 2: DETALLE, VARIANTES (HU21) Y PREGUNTAS (HU24) + RECOMENDACIONES (HU31) */}
+      {/* VISTA 2: DETALLE DE PRODUCTO */}
       {currentScreen === 'detail' && selectedProduct && (
         <ScrollView style={styles.containerPad}>
           <Pressable onPress={() => setCurrentScreen('catalog')} style={styles.backBtn}>
@@ -667,7 +644,6 @@ export default function App() {
             <Text style={styles.detailDescTitle}>Descripción:</Text>
             <Text style={styles.detailDesc}>{selectedProduct.descripcion}</Text>
 
-            {/* Simulación de Reposición (HU30) */}
             {getStockTotal(selectedProduct) === 0 && (
               <Pressable style={[styles.mainBtn, {backgroundColor: '#f57c00', marginBottom: 10}]} onPress={() => simularReposicionStock(selectedProduct.id)}>
                 <Text style={styles.mainBtnText}>Simular Ingreso de Stock (+5 Unidades)</Text>
@@ -681,9 +657,9 @@ export default function App() {
               <Text style={styles.mainBtnText}>Agregar Variante al Carrito</Text>
             </Pressable>
 
-            {/* Sección de Preguntas Frecuentes (HU24) */}
+            {/* Preguntas Frecuentes */}
             <View style={{marginTop: 20, borderTopWidth: 1, borderTopColor: '#eee', paddingTop: 12}}>
-              <Text style={{fontWeight: 'bold', fontSize: 14, marginBottom: 8}}>Preguntas y Respuestas sobre el artículo</Text>
+              <Text style={{fontWeight: 'bold', fontSize: 14, marginBottom: 8}}>Preguntas y Respuestas</Text>
               <TextInput 
                 style={styles.input}
                 placeholder="Escribe tu pregunta (mínimo 10 caracteres)..."
@@ -708,9 +684,9 @@ export default function App() {
               ))}
             </View>
 
-            {/* Recomendaciones Relacionadas (HU31) */}
+            {/* Recomendaciones Relacionadas */}
             <View style={{marginTop: 20, borderTopWidth: 1, borderTopColor: '#eee', paddingTop: 12}}>
-              <Text style={{fontWeight: 'bold', fontSize: 14, marginBottom: 8}}>Productos Recomendados (Misma categoría)</Text>
+              <Text style={{fontWeight: 'bold', fontSize: 14, marginBottom: 8}}>Productos Recomendados</Text>
               {productos.filter(p => p.categoria === selectedProduct.categoria && p.id !== selectedProduct.id && getStockTotal(p) > 0).slice(0, 3).map(rec => (
                 <Pressable 
                   key={rec.id} 
@@ -726,12 +702,12 @@ export default function App() {
         </ScrollView>
       )}
 
-      {/* VISTA 3: COMPARADOR DE PRODUCTOS (HU22) */}
+      {/* VISTA 3: COMPARADOR */}
       {currentScreen === 'compare' && (
         <ScrollView style={styles.containerPad}>
           <Text style={styles.sectionTitle}>Comparador de Productos (2 a 3 ítems)</Text>
           {compareList.length === 0 ? (
-            <Text style={styles.emptyText}>No has seleccionado ningún producto para comparar en el catálogo.</Text>
+            <Text style={styles.emptyText}>No has seleccionado ningún producto para comparar. Ve al catálogo y presiona el icono ⚖️.</Text>
           ) : (
             <ScrollView horizontal>
               <View style={{flexDirection: 'row', gap: 10, paddingBottom: 20}}>
@@ -744,7 +720,7 @@ export default function App() {
                       <Text style={{fontSize: 15, fontWeight: 'bold', marginVertical: 6}}>{prod.nombre}</Text>
                       <Text style={{fontSize: 12, color: '#666', marginBottom: 6}}>Marca: {prod.marca}</Text>
                       <Text style={{fontSize: 13, fontWeight: 'bold', color: '#d32f2f', marginBottom: 6}}>
-                        Precio: desde ${Math.min(...prod.variantes.map(v=>v.precioFinal)).toLocaleString()}
+                        Desde ${Math.min(...prod.variantes.map(v=>v.precioFinal)).toLocaleString()}
                       </Text>
                       <Text style={{fontSize: 11, color: '#444', marginBottom: 10}}>Stock total: {getStockTotal(prod)}</Text>
                       <Text style={{fontSize: 11, color: '#555', marginBottom: 10}}>{prod.descripcion}</Text>
@@ -776,22 +752,22 @@ export default function App() {
                 </Pressable>
               </View>
             )}
-            ListEmptyComponent={<Text style={styles.emptyText}>No tienes productos guardados en favoritos.</Text>}
+            ListEmptyComponent={<Text style={styles.emptyText}>No tienes productos guardados en favoritos. Marca el icono ❤️ en el catálogo.</Text>}
           />
         </View>
       )}
 
-      {/* VISTA 5: LIBRETA DE DIRECCIONES (HU25) */}
+      {/* VISTA 5: DIRECCIONES */}
       {currentScreen === 'addresses' && (
         <ScrollView style={styles.containerPad}>
           <Text style={styles.sectionTitle}>Libreta de Direcciones de Envío</Text>
-          <TextInput style={styles.input} placeholder="Alias (ej. Casa, Oficina, Apartamento)" value={nuevaDir.alias} onChangeText={t=>setNuevaDir({...nuevaDir, alias: t})} />
-          <TextInput style={styles.input} placeholder="Municipio (ej. Mosquera, Funza, Madrid)" value={nuevaDir.municipio} onChangeText={t=>setNuevaDir({...nuevaDir, municipio: t})} />
-          <TextInput style={styles.input} placeholder="Descripción o referencia (ej. Calle 10 # 5-20)" value={nuevaDir.ref} onChangeText={t=>setNuevaDir({...nuevaDir, ref: t})} />
+          <TextInput style={styles.input} placeholder="Alias (ej. Casa, Oficina)" value={nuevaDir.alias} onChangeText={t=>setNuevaDir({...nuevaDir, alias: t})} />
+          <TextInput style={styles.input} placeholder="Municipio (Mosquera, Funza, Madrid)" value={nuevaDir.municipio} onChangeText={t=>setNuevaDir({...nuevaDir, municipio: t})} />
+          <TextInput style={styles.input} placeholder="Descripción o referencia (Calle 10 # 5-20)" value={nuevaDir.ref} onChangeText={t=>setNuevaDir({...nuevaDir, ref: t})} />
           
           <Pressable style={styles.mainBtn} onPress={() => {
             if (!nuevaDir.alias || !nuevaDir.ref) {
-              Alert.alert('Error', 'Completa el alias y la referencia de la dirección.');
+              Alert.alert('Error', 'Completa el alias y la referencia.');
               return;
             }
             const dId = 'DIR-' + Date.now();
@@ -802,7 +778,7 @@ export default function App() {
             <Text style={styles.mainBtnText}>Guardar Nueva Dirección</Text>
           </Pressable>
 
-          <Text style={[styles.sectionTitle, {marginTop: 10}]}>Mis Direcciones Registradas</Text>
+          <Text style={[styles.sectionTitle, {marginTop: 10}]}>Direcciones Registradas</Text>
           {direcciones.map(d => (
             <View key={d.id} style={[styles.card, dirSeleccionada === d.id && {borderColor: '#2e7d32', borderWidth: 2}]}>
               <Text style={styles.productName}>{d.alias} {d.principal ? '⭐ [Principal]' : ''}</Text>
@@ -811,25 +787,18 @@ export default function App() {
               
               <View style={{flexDirection: 'row', gap: 10, marginTop: 8}}>
                 <Pressable onPress={() => setDirSeleccionada(d.id)} style={[styles.btnAction, dirSeleccionada === d.id && {backgroundColor: '#1b5e20'}]}>
-                  <Text style={styles.btnText}>{dirSeleccionada === d.id ? 'Seleccionada para compra' : 'Usar esta dirección'}</Text>
+                  <Text style={styles.btnText}>{dirSeleccionada === d.id ? 'Seleccionada' : 'Usar esta dirección'}</Text>
                 </Pressable>
-                {!d.principal && (
-                  <Pressable onPress={() => {
-                    setDirecciones(direcciones.map(item => ({ ...item, principal: item.id === d.id })));
-                  }} style={[styles.sortBtn, {backgroundColor: '#e0e0e0'}]}>
-                    <Text style={{fontSize: 10}}>Marcar principal</Text>
-                  </Pressable>
-                )}
               </View>
             </View>
           ))}
         </ScrollView>
       )}
 
-      {/* VISTA 6: CARRITO, ESTIMADOR DE ENVÍO (HU26) Y PAGO */}
+      {/* VISTA 6: CARRITO Y ENVÍOS */}
       {currentScreen === 'cart' && (
         <ScrollView style={styles.containerPad}>
-          <Text style={styles.sectionTitle}>Carrito de Compras (Con Variantes)</Text>
+          <Text style={styles.sectionTitle}>Carrito de Compras</Text>
           {cart.length === 0 ? (
             <Text style={styles.emptyText}>Tu carrito está vacío.</Text>
           ) : (
@@ -852,20 +821,19 @@ export default function App() {
                 </View>
               ))}
 
-              {/* Selector de Modalidad de Envío y Municipio (HU26) */}
               <View style={styles.summaryBox}>
                 <Text style={{fontWeight: 'bold', marginBottom: 6}}>Modalidad de Envío:</Text>
                 <View style={{flexDirection: 'row', gap: 10, marginBottom: 10}}>
                   <Pressable onPress={() => setModalidadEnvio('estandar')} style={[styles.sortBtn, modalidadEnvio==='estandar' && styles.activeSort]}>
-                    <Text style={{fontSize: 11}}>Estándar (1-2 días)</Text>
+                    <Text style={{fontSize: 11}}>Estándar</Text>
                   </Pressable>
                   <Pressable onPress={() => setModalidadEnvio('expres')} style={[styles.sortBtn, modalidadEnvio==='expres' && styles.activeSort]}>
-                    <Text style={{fontSize: 11}}>Exprés (Prioritario)</Text>
+                    <Text style={{fontSize: 11}}>Exprés</Text>
                   </Pressable>
                 </View>
 
                 <Text style={styles.summaryRow}>Subtotal: ${subtotal.toLocaleString()} COP</Text>
-                <Text style={styles.summaryRow}>Costo de Envío Estimado: ${shipping.toLocaleString()} COP</Text>
+                <Text style={styles.summaryRow}>Envío Estimado: ${shipping.toLocaleString()} COP</Text>
                 <Text style={styles.totalRow}>Total a Pagar: ${total.toLocaleString()} COP</Text>
               </View>
 
@@ -877,7 +845,7 @@ export default function App() {
         </ScrollView>
       )}
 
-      {/* VISTA 7: HISTORIAL DE PEDIDOS Y SEGUIMIENTO (HU27, HU28) */}
+      {/* VISTA 7: HISTORIAL Y SEGUIMIENTO */}
       {currentScreen === 'history' && (
         <View style={{flex: 1, padding: 16}}>
           <Text style={styles.sectionTitle}>Historial de Pedidos y Seguimiento</Text>
@@ -899,23 +867,23 @@ export default function App() {
                 <View style={{flexDirection: 'row', gap: 8, marginTop: 10}}>
                   {item.estado !== 'Entregado' && item.estado !== 'Cancelado' && (
                     <Pressable style={styles.btnAction} onPress={() => avanzarEstadoPedido(item.code)}>
-                      <Text style={styles.btnText}>Simular Avance de Entrega</Text>
+                      <Text style={styles.btnText}>Simular Avance</Text>
                     </Pressable>
                   )}
                   {(item.estado === 'Confirmado' || item.estado === 'Preparando') && (
                     <Pressable style={[styles.btnAction, {backgroundColor: '#d32f2f'}]} onPress={() => cancelarPedido(item.code)}>
-                      <Text style={styles.btnText}>Cancelar Pedido</Text>
+                      <Text style={styles.btnText}>Cancelar</Text>
                     </Pressable>
                   )}
                 </View>
               </View>
             )}
-            ListEmptyComponent={<Text style={styles.emptyText}>No hay pedidos registrados en la simulación.</Text>}
+            ListEmptyComponent={<Text style={styles.emptyText}>No hay pedidos registrados.</Text>}
           />
         </View>
       )}
 
-      {/* VISTA 8: CENTRO DE NOTIFICACIONES INTERNO (HU29, HU30) */}
+      {/* VISTA 8: NOTIFICACIONES */}
       {currentScreen === 'notifications' && (
         <View style={{flex: 1, padding: 16}}>
           <Text style={styles.sectionTitle}>Centro de Notificaciones Internas</Text>
@@ -939,13 +907,13 @@ export default function App() {
         </View>
       )}
 
-      {/* VISTA 9: CENTRO DE AYUDA Y SOPORTE (HU32) */}
+      {/* VISTA 9: CENTRO DE AYUDA */}
       {currentScreen === 'support' && (
         <ScrollView style={styles.containerPad}>
           <Text style={styles.sectionTitle}>Centro de Ayuda y Solicitudes</Text>
           <TextInput style={styles.input} placeholder="Número de pedido (ej. PED-1234)" value={ticketForm.pedidoId} onChangeText={t=>setTicketForm({...ticketForm, pedidoId: t})} />
           
-          <Text style={{fontSize: 12, fontWeight: 'bold', marginBottom: 4}}>Motivo de la solicitud:</Text>
+          <Text style={{fontSize: 12, fontWeight: 'bold', marginBottom: 4}}>Motivo:</Text>
           <View style={{flexDirection: 'row', gap: 6, marginBottom: 10}}>
             {['Entrega', 'Producto', 'Otro'].map(mot => (
               <Pressable key={mot} onPress={() => setTicketForm({...ticketForm, motivo: mot})} style={[styles.sortBtn, ticketForm.motivo === mot && styles.activeSort]}>
@@ -954,7 +922,7 @@ export default function App() {
             ))}
           </View>
 
-          <TextInput style={[styles.input, {height: 70}]} placeholder="Descripción del inconveniente (mínimo 15 caracteres)..." multiline value={ticketForm.descripcion} onChangeText={t=>setTicketForm({...ticketForm, descripcion: t})} />
+          <TextInput style={[styles.input, {height: 70}]} placeholder="Descripción (mínimo 15 caracteres)..." multiline value={ticketForm.descripcion} onChangeText={t=>setTicketForm({...ticketForm, descripcion: t})} />
 
           <Pressable style={styles.mainBtn} onPress={crearTicketSoporte}>
             <Text style={styles.mainBtnText}>Enviar Solicitud de Ayuda</Text>
@@ -964,7 +932,7 @@ export default function App() {
           {supportTickets.map(t => (
             <View key={t.id} style={styles.card}>
               <Text style={styles.productName}>Caso: {t.id} ({t.motivo})</Text>
-              <Text style={{fontSize: 12, color: '#666'}}>Pedido asociado: {t.pedidoId}</Text>
+              <Text style={{fontSize: 12, color: '#666'}}>Pedido: {t.pedidoId}</Text>
               <Text style={{fontSize: 12, color: '#444', marginVertical: 4}}>{t.descripcion}</Text>
               <Text style={{fontSize: 11, fontWeight: 'bold', color: t.estado === 'Abierto' ? '#f57c00' : '#2e7d32'}}>Estado: {t.estado}</Text>
               {t.respuestaFicticia !== '' && <Text style={{fontSize: 11, color: '#1b5e20', marginTop: 4}}>Respuesta: {t.respuestaFicticia}</Text>}
